@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ro">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>5XO</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+
+        <h1>5XO</h1>
+
+        <h2>Five in a Row</h2>
+
+    </header>
+
+    <section class="game-info">
+
+        <p>
+            Current Player:
+            <strong id="current-player">X</strong>
+        </p>
+
+        <p id="game-status">
+            Game started.
+        </p>
+
+    </section>
+
+    <section id="board-container">
+
+        <!-- Tabla va fi creată din JavaScript -->
+
+    </section>
+
+    <section class="controls">
+
+        <button id="reset-button">
+
+            Restart Game
+
+        </button>
+
+    </section>
+
+</div>
+
+<script src="{{ url_for('static',
+filename='js/game.js') }}"></script>
+
+</body>
+
+</html>
