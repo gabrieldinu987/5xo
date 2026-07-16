@@ -2,7 +2,7 @@ class Board:
     """
     Reprezintă tabla de joc.
     """
-
+    
     SIZE = 50
 
     def __init__(self):
