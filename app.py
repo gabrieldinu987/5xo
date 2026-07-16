@@ -3,11 +3,15 @@ from game.game import Game
 
 app = Flask(__name__)
 
+# Instanța jocului (deocamdată există un singur joc în memorie)
 game = Game()
 
 
 @app.route("/")
 def index():
+    """
+    Afișează pagina principală.
+    """
     return render_template("index.html")
 
 
