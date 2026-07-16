@@ -1,15 +1,14 @@
-from flask import Flask
+from flask import Flask, render_template
+from game.game import Game
 
 app = Flask(__name__)
 
+game = Game()
+
 
 @app.route("/")
-def home():
-    return """
-    <h1>5XO</h1>
-    <h2>Welcome!</h2>
-    <p>The game will be implemented soon.</p>
-    """
+def index():
+    return render_template("index.html")
 
 
 if __name__ == "__main__":
