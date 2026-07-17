@@ -8,6 +8,9 @@ class GameService:
         self.current_player = "X"
         self.game_over = False
         self.winner = None
+        self.board.grid[10][10] = "X"
+        self.board.grid[11][11] = "O"
+        self.board.grid[12][12] = "X"
 
     def reset(self):
         self.board.reset()

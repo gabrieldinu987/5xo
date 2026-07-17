@@ -1,33 +1,71 @@
 /*
-    Dimensiunea tablei.
+==================================================
+5XO
+Frontend JavaScript
+==================================================
+*/
+
+
+/*
+==================================================
+1. CONSTANTE
+==================================================
 */
 
 const BOARD_SIZE = 50;
 
 
 /*
-    Containerul în care vom desena tabla.
+==================================================
+2. GAME STATE
+==================================================
 */
 
-const boardContainer = document.getElementById("board-container");
+const game = {
+
+    board: [],
+
+    currentPlayer: "X",
+
+    winner: null,
+
+    gameOver: false,
+
+    moveCount: 0,
+
+    lastMove: null
+
+};
 
 
 /*
-    Creează tabla de joc.
+==================================================
+3. ELEMENTE HTML
+==================================================
+*/
+
+const boardContainer =
+    document.getElementById("board-container");
+
+const currentPlayerLabel =
+    document.getElementById("current-player");
+
+const gameStatus =
+    document.getElementById("game-status");
+
+const resetButton =
+    document.getElementById("reset-button");
+
+
+/*
+==================================================
+4. FUNCȚII DE CONSTRUIRE
+==================================================
 */
 
 function createBoard() {
 
-    /*
-        Ștergem conținutul existent.
-    */
-
     boardContainer.innerHTML = "";
-
-
-    /*
-        Creăm toate cele 2500 de celule.
-    */
 
     for (let row = 0; row < BOARD_SIZE; row++) {
 
@@ -37,17 +75,9 @@ function createBoard() {
 
             cell.className = "cell";
 
-            /*
-                Salvăm coordonatele.
-            */
-
             cell.dataset.row = row;
 
             cell.dataset.col = col;
-
-            /*
-                Adăugăm celula în tablă.
-            */
 
             boardContainer.appendChild(cell);
 
@@ -59,9 +89,140 @@ function createBoard() {
 
 
 /*
-    Pornirea aplicației.
+==================================================
+5. FUNCȚII API
+==================================================
 */
 
-createBoard();
+async function loadGameState() {
 
-console.log("5XO loaded.");
+    try {
+
+        const response = await fetch("/state");
+
+        if (!response.ok) {
+
+            throw new Error("Cannot load game state.");
+
+        }
+
+        const state = await response.json();
+
+        game.board = state.board;
+
+        game.currentPlayer = state.current_player;
+
+        game.gameOver = state.game_over;
+
+        game.winner = state.winner;
+
+        console.log(game);
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
+
+
+/*
+==================================================
+6. FUNCȚII UI
+==================================================
+*/
+
+function updateGameInfo() {
+
+    currentPlayerLabel.textContent =
+        game.currentPlayer;
+
+    if (game.gameOver) {
+
+        if (game.winner !== null) {
+
+            gameStatus.textContent =
+                "Player " +
+                game.winner +
+                " wins!";
+
+        }
+
+        else {
+
+            gameStatus.textContent =
+                "Draw";
+
+        }
+
+    }
+
+    else {
+
+        gameStatus.textContent =
+            "Game Started";
+
+    }
+
+}
+
+
+function renderBoard() {
+
+    for (let row = 0; row < BOARD_SIZE; row++) {
+
+        for (let col = 0; col < BOARD_SIZE; col++) {
+
+            const value = game.board[row][col];
+
+            const cell = document.querySelector(
+                `.cell[data-row="${row}"][data-col="${col}"]`
+            );
+
+            if (!cell) {
+                continue;
+            }
+
+            cell.textContent = value ?? "";
+
+        }
+
+    }
+
+}
+
+
+/*
+==================================================
+7. EVENIMENTE
+==================================================
+*/
+
+/*
+    Vor fi implementate mai târziu.
+*/
+
+
+/*
+==================================================
+8. INITIALIZARE
+==================================================
+*/
+
+async function initializeGame() {
+
+    createBoard();
+
+    await loadGameState();
+
+    updateGameInfo();
+
+    renderBoard();
+
+}
+
+
+initializeGame();
