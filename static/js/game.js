@@ -91,6 +91,14 @@ function createBoard() {
 
 }
 
+function updateGameState(state) {
+
+    game.board = state.board;
+    game.currentPlayer = state.current_player;
+    game.gameOver = state.game_over;
+    game.winner = state.winner;
+
+}
 
 /*
 ==================================================
@@ -110,15 +118,9 @@ async function loadGameState() {
 
         }
 
-        const state = await response.json();
+        const state = await response.json();      
 
-        game.board = state.board;
-
-        game.currentPlayer = state.current_player;
-
-        game.gameOver = state.game_over;
-
-        game.winner = state.winner;
+        updateGameState(state);
 
         console.log(game);
 
@@ -165,10 +167,7 @@ async function sendMove(row, col) {
 
         const state = await response.json();
 
-        game.board = state.board;
-        game.currentPlayer = state.current_player;
-        game.gameOver = state.game_over;
-        game.winner = state.winner;
+        updateGameState(state);
 
         updateGameInfo();
 
@@ -184,6 +183,39 @@ async function sendMove(row, col) {
 
 }
 
+async function resetGame() {
+
+    try {
+
+        const response = await fetch("/reset", {
+
+            method: "POST"
+
+        });
+
+        if (!response.ok) {
+
+            throw new Error("Cannot reset game.");
+
+        }
+
+        const state = await response.json();
+
+        updateGameState(state);
+
+        updateGameInfo();
+
+        renderBoard();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
 /*
 ==================================================
 6. FUNCȚII UI 
@@ -257,10 +289,11 @@ function renderBoard() {
 ==================================================
 */
 
-/*
-    Vor fi implementate mai târziu.
-*/
+resetButton.addEventListener("click", function () {
 
+    resetGame();
+
+});
 
 /*
 ==================================================
