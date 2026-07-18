@@ -1,32 +1,31 @@
-# Virtual Environment
-venv/
-
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Database
-*.db
-
-# Logs
-logs/
-*.log
+# Virtual Environment
+venv/
 
 # VS Code
 .vscode/
 
-# macOS
-.DS_Store
+# JetBrains
+.idea/
 
-# Environment
-.env
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Pytest
 .pytest_cache/
 
 # Coverage
-htmlcov/
 .coverage
+htmlcov/
 
-# Docker
-*.tar
+# Environment
+.env
