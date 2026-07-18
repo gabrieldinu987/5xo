@@ -274,7 +274,30 @@ function renderBoard() {
                 continue;
             }
 
-            cell.textContent = value ?? "";
+            cell.classList.remove(
+                "x",
+                "o",
+                "winner",
+                "last-move"
+            );
+
+            cell.textContent = "";
+
+            if (value === "X") {
+
+                cell.textContent = "X";
+
+                cell.classList.add("x");
+
+            }
+
+            else if (value === "O") {
+
+                cell.textContent = "O";
+
+                cell.classList.add("o");
+
+            }
 
         }
 

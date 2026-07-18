@@ -137,6 +137,49 @@ main {
 
     font-weight: bold;
 
+    transition: background-color .2s,
+                color .2s;
+
+}
+
+.cell:hover {
+
+    background: #eeeeee;
+
+}
+
+/* X */
+
+.cell.x {
+
+    color: #1565C0;
+
+}
+
+/* O */
+
+.cell.o {
+
+    color: #D32F2F;
+
+}
+
+/* ultima mutare */
+
+.cell.last-move {
+
+    background: #FFF59D;
+
+}
+
+/* cele 5 simboluri castigatoare */
+
+.cell.winner {
+
+    background: #43A047;
+
+    color: white;
+
 }
 
 .cell:hover {
