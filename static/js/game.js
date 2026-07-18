@@ -80,13 +80,7 @@ function createBoard() {
             cell.dataset.col = col;
 
             cell.addEventListener("click", function () {
-
-                console.log(
-                    "Clicked:",
-                    row,
-                    col
-                );
-
+                sendMove(row, col);
             });
 
             boardContainer.appendChild(cell);
@@ -138,6 +132,57 @@ async function loadGameState() {
 
 }
 
+async function sendMove(row, col) {
+
+    try {
+
+        const response = await fetch("/move", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+
+                row: row,
+                col: col
+
+            })
+
+        });
+
+        if (!response.ok) {
+
+            const error = await response.json();
+
+            alert(error.message);
+
+            return;
+
+        }
+
+        const state = await response.json();
+
+        game.board = state.board;
+        game.currentPlayer = state.current_player;
+        game.gameOver = state.game_over;
+        game.winner = state.winner;
+
+        updateGameInfo();
+
+        renderBoard();
+
+    }
+
+    catch (error) {
+
+        console.error(error);
+
+    }
+
+}
 
 /*
 ==================================================

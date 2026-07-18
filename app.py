@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 
 from game.game import Game
 
@@ -12,11 +12,27 @@ def index():
     return render_template("index.html")
 
 
-@app.route("/state")
-def state():
+@app.route("/move", methods=["POST"])
+def move():
     """
-    Returnează starea curentă a jocului.
+    Primește o mutare și returnează noua stare a jocului.
     """
+
+    data = request.get_json()
+
+    row = data["row"]
+    col = data["col"]
+
+    try:
+        game.play(row, col)
+
+    except ValueError as error:
+
+        return jsonify({
+            "success": False,
+            "message": str(error)
+        }), 400
+
     return jsonify(game.get_state())
 
 
