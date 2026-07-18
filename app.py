@@ -12,11 +12,16 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/state")
+def state():
+    """
+    Returnează starea curentă a jocului.
+    """
+    return jsonify(game.get_state())
+
+
 @app.route("/move", methods=["POST"])
 def move():
-    """
-    Primește o mutare și returnează noua stare a jocului.
-    """
 
     data = request.get_json()
 
@@ -32,6 +37,14 @@ def move():
             "success": False,
             "message": str(error)
         }), 400
+
+    return jsonify(game.get_state())
+
+
+@app.route("/reset", methods=["POST"])
+def reset():
+
+    game.reset()
 
     return jsonify(game.get_state())
 

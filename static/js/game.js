@@ -291,6 +291,8 @@ function renderBoard() {
 
 resetButton.addEventListener("click", function () {
 
+    console.log("Reset button clicked");
+
     resetGame();
 
 });
