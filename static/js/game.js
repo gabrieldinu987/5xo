@@ -59,7 +59,7 @@ const resetButton =
 
 /*
 ==================================================
-4. FUNCȚII DE CONSTRUIRE
+4. FUNCȚII DE CONSTRUIRE - creaza tabla de joc
 ==================================================
 */
 
@@ -79,6 +79,16 @@ function createBoard() {
 
             cell.dataset.col = col;
 
+            cell.addEventListener("click", function () {
+
+                console.log(
+                    "Clicked:",
+                    row,
+                    col
+                );
+
+            });
+
             boardContainer.appendChild(cell);
 
         }
@@ -90,7 +100,7 @@ function createBoard() {
 
 /*
 ==================================================
-5. FUNCȚII API
+5. FUNCȚII API - incarca starea
 ==================================================
 */
 
@@ -131,10 +141,11 @@ async function loadGameState() {
 
 /*
 ==================================================
-6. FUNCȚII UI
+6. FUNCȚII UI 
 ==================================================
 */
 
+// Verifica starea jocului (daca este catigat sau este egalitate)
 function updateGameInfo() {
 
     currentPlayerLabel.textContent =
@@ -169,7 +180,7 @@ function updateGameInfo() {
 
 }
 
-
+// Afiseaza tabla de joc
 function renderBoard() {
 
     for (let row = 0; row < BOARD_SIZE; row++) {
