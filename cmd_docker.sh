@@ -1,6 +1,3 @@
-# 0. Se instalează toate pachetele necesare din requirements.txt (folosim in Dockerfile)
-# pip install -r requirements.txt
-
 # 1.Se creeaza imaginea 5xo:1.0 folosind Dockerfile
 docker build -t 5xo-img:1.0 .
 
@@ -27,3 +24,8 @@ docker rm 5xo-ctn1
 # 9. Se șterge imaginea
 docker rmi 5xo-img:1.0
 
+#10. Porneste aplicatia folosind docker-compose
+docker-compose up -d
+
+#11. Opreste aplicatia folosind docker-compose
+docker-compose down 

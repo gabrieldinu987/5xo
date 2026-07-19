@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+
+  5xo:
+
+    build: .
+
+    container_name: 5xo
+
+    ports:
+      - "5000:5000"
+
+    restart: unless-stopped
