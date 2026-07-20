@@ -1,44 +1,142 @@
+```groovy
 pipeline {
 
     agent any
 
+    environment {
+
+        IMAGE_NAME = "5xo"
+
+    }
+
     stages {
 
         stage('Checkout') {
+
             steps {
+
                 checkout scm
+
             }
+
         }
 
-        stage('Install Dependencies') {
+        stage('Create Python Environment') {
+
             steps {
+
                 sh '''
                     python3 -m venv venv
+
                     . venv/bin/activate
+
                     pip install --upgrade pip
+
                     pip install -r requirements.txt
                 '''
+
             }
+
         }
 
-        stage('Run Tests') {
+        stage('Run Unit Tests') {
+
             steps {
+
                 sh '''
                     . venv/bin/activate
+
                     pytest
                 '''
+
             }
+
         }
 
-        stage('Docker Build') {
+        stage('Build Docker Image') {
+
             steps {
+
                 sh '''
                     docker build \
-                        -t 5xo:${BUILD_NUMBER} \
-                        -t 5xo:latest .
+                        -t ${IMAGE_NAME}:${BUILD_NUMBER} \
+                        -t ${IMAGE_NAME}:latest \
+                        .
                 '''
+
             }
+
+        }
+
+        stage('Push to Docker Hub') {
+
+            steps {
+
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                            -u "$DOCKER_USER" \
+                            --password-stdin
+
+                        docker tag \
+                            ${IMAGE_NAME}:${BUILD_NUMBER} \
+                            ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+
+                        docker tag \
+                            ${IMAGE_NAME}:latest \
+                            ${DOCKER_USER}/${IMAGE_NAME}:latest
+
+                        docker push \
+                            ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+
+                        docker push \
+                            ${DOCKER_USER}/${IMAGE_NAME}:latest
+
+                        docker logout
+                    '''
+
+                }
+
+            }
+
         }
 
     }
+
+    post {
+
+        success {
+
+            echo "========================================="
+            echo "Build completed successfully!"
+            echo "Image: ${IMAGE_NAME}:${BUILD_NUMBER}"
+            echo "Latest image pushed to Docker Hub."
+            echo "========================================="
+
+        }
+
+        failure {
+
+            echo "========================================="
+            echo "Pipeline failed."
+            echo "========================================="
+
+        }
+
+        always {
+
+            cleanWs()
+
+        }
+
+    }
+
 }
+```
