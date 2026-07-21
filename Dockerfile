@@ -1,24 +1,46 @@
-# Imagine de bază
+# ==========================================
+# Base Image
+# ==========================================
+
 FROM python:3.12-slim
 
-# Directorul de lucru din container
+# ==========================================
+# Environment
+# ==========================================
+# evită generarea fișierelor *.pyc
+ENV PYTHONDONTWRITEBYTECODE=1
+# face ca logurile să apară imediat în docker logs
+ENV PYTHONUNBUFFERED=1
+
+# ==========================================
+# Working Directory
+# ==========================================
+
 WORKDIR /app
 
-# Copiem fișierul cu dependențe
+# ==========================================
+# Install dependencies
+# ==========================================
+
 COPY requirements.txt .
 
-# Instalăm dependențele
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Copiem aplicația
+# ==========================================
+# Copy application
+# ==========================================
+
 COPY . .
 
-# Expunem portul Flask
+# ==========================================
+# Network
+# ==========================================
+
 EXPOSE 5000
 
-# Variabile de mediu
-ENV FLASK_APP=app.py
-ENV FLASK_ENV=production
+# ==========================================
+# Start application
+# ==========================================
 
-# Pornim aplicația
 CMD ["python", "app.py"]

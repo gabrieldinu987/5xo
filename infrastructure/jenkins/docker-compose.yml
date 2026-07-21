@@ -1,0 +1,30 @@
+services:
+
+  jenkins:
+
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_GID: 984
+
+    image: jenkins-devops:1.0
+
+    container_name: jenkins-ctn
+
+    restart: unless-stopped
+
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+
+    volumes:
+      - jenkins-vol:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    environment:
+      TZ: Europe/Bucharest
+
+volumes:
+
+  jenkins-vol:

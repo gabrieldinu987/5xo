@@ -106,6 +106,15 @@ pipeline {
             }
 
         }
+        stage('Deploy') {
+            
+            steps {
+                sh '''
+                cd infrastructure/deployment
+                docker compose up -d --pull always
+                '''
+            }
+        }
 
     }
 
