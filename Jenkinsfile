@@ -3,27 +3,19 @@ pipeline {
     agent any
 
     environment {
-
         IMAGE_NAME = "5xo"
-
     }
 
     stages {
 
         stage('Checkout') {
-
             steps {
-
                 checkout scm
-
             }
-
         }
 
-        stage('Create Python Environment') {
-
+        stage('Install Dependencies') {
             steps {
-
                 sh '''
                     python3 -m venv venv
 
@@ -33,42 +25,31 @@ pipeline {
 
                     pip install -r requirements.txt
                 '''
-
             }
-
         }
 
         stage('Run Unit Tests') {
-
             steps {
-
                 sh '''
                     . venv/bin/activate
 
                     pytest
                 '''
-
             }
-
         }
 
         stage('Build Docker Image') {
-
             steps {
-
                 sh '''
                     docker build \
                         -t ${IMAGE_NAME}:${BUILD_NUMBER} \
                         -t ${IMAGE_NAME}:latest \
                         .
                 '''
-
             }
-
         }
 
         stage('Push to Docker Hub') {
-
             steps {
 
                 withCredentials([
@@ -84,66 +65,40 @@ pipeline {
                             -u "$DOCKER_USER" \
                             --password-stdin
 
-                        docker tag \
-                            ${IMAGE_NAME}:${BUILD_NUMBER} \
-                            ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker tag ${IMAGE_NAME}:latest ${DOCKER_USER}/${IMAGE_NAME}:latest
 
-                        docker tag \
-                            ${IMAGE_NAME}:latest \
-                            ${DOCKER_USER}/${IMAGE_NAME}:latest
-
-                        docker push \
-                            ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
-
-                        docker push \
-                            ${DOCKER_USER}/${IMAGE_NAME}:latest
+                        docker push ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
+                        docker push ${DOCKER_USER}/${IMAGE_NAME}:latest
 
                         docker logout
                     '''
-
                 }
-
             }
-
         }
+
         stage('Deploy') {
-            
             steps {
                 sh '''
-                cd infrastructure/deployment
-                docker compose up -d --pull always
+                    cd infrastructure/deployment
+                    docker compose up -d --pull always
                 '''
             }
         }
-
     }
 
     post {
 
         success {
-
-            echo "========================================="
-            echo "Build completed successfully!"
-            echo "Image: ${IMAGE_NAME}:${BUILD_NUMBER}"
-            echo "Latest image pushed to Docker Hub."
-            echo "========================================="
-
+            echo "Build #${BUILD_NUMBER} completed successfully."
         }
 
         failure {
-
-            echo "========================================="
-            echo "Pipeline failed."
-            echo "========================================="
-
+            echo "Build #${BUILD_NUMBER} failed."
         }
 
         always {
-
             cleanWs()
-
         }
-
     }
-
 }
