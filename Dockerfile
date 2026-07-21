@@ -9,6 +9,7 @@ FROM python:3.12-slim
 # ==========================================
 # evită generarea fișierelor *.pyc
 ENV PYTHONDONTWRITEBYTECODE=1
+
 # face ca logurile să apară imediat în docker logs
 ENV PYTHONUNBUFFERED=1
 
