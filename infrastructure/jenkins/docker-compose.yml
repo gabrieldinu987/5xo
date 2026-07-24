@@ -14,8 +14,8 @@ services:
       - "50000:50000"
 
     environment:
-      HOME: /home/gabriel
-      KUBECONFIG: /home/gabriel/.kube/config
+      HOME: /var/jenkins_home
+      KUBECONFIG: /var/jenkins_home/.kube/config
 
     volumes:
       # Jenkins Home
