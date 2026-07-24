@@ -1,10 +1,13 @@
 services:
+
   jenkins:
+
     build:
       context: .
       dockerfile: Dockerfile
 
     image: jenkins-devops:2.0
+
     container_name: jenkins-ctn
 
     restart: unless-stopped
@@ -17,19 +20,17 @@ services:
       HOME: /var/jenkins_home
       KUBECONFIG: /var/jenkins_home/.kube/config
 
-    volumes:
-      # Jenkins Home
-      - jenkins-vol:/var/jenkins_home
+    group_add:
+      - "984"
 
-      # Docker
+    volumes:
+      - jenkins-vol:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
 
-      # Kubernetes config (aceleași căi ca pe host)
-      - /home/gabriel/.kube:/home/gabriel/.kube:ro
-      - /home/gabriel/.minikube:/home/gabriel/.minikube:ro
+      - /home/gabriel/.kube:/var/jenkins_home/.kube:ro
+      - /home/gabriel/.minikube:/var/jenkins_home/.minikube:ro
 
-    group_add:
-      - "${DOCKER_GID}"
 
 volumes:
+
   jenkins-vol:
