@@ -73,16 +73,23 @@ pipeline {
             }
         }
 
-        stage('Docker Status') {
+        stage('Container Check') {
             steps {
                 sh '''
-                    echo
-                    echo "Running containers"
-                    docker ps
+                    echo "Checking container status..."
 
-                    echo
-                    echo "Images"
-                    docker images
+                    docker ps --filter name=${APP_NAME}
+
+                    STATUS=$(docker inspect -f '{{.State.Status}}' ${APP_NAME})
+
+                    if [ "$STATUS" != "running" ]
+                    then
+                        echo "Container is not running"
+                        docker logs ${APP_NAME}
+                        exit 1
+                    fi
+
+                    echo "Container is running"
                 '''
             }
         }
