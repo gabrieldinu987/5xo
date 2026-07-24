@@ -1,10 +1,11 @@
+docker-workflow
 workflow-aggregator
+pipeline-stage-view
 git
 github
-docker-workflow
-credentials-binding
-pipeline-stage-view
+credentials
+ssh-credentials
+matrix-auth
+role-strategy
 blueocean
 ws-cleanup
-ssh-agent
-matrix-auth

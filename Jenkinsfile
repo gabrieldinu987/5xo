@@ -1,9 +1,15 @@
 pipeline {
-
     agent any
 
     environment {
+        APP_NAME   = "5xo"
         IMAGE_NAME = "5xo"
+        IMAGE_TAG  = "${BUILD_NUMBER}"
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
     }
 
     stages {
@@ -14,16 +20,12 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Build Docker Image') {
             steps {
                 sh '''
-                    python3 -m venv venv
-
-                    . venv/bin/activate
-
-                    pip install --upgrade pip
-
-                    pip install -r requirements.txt
+                    docker build \
+                      -t ${IMAGE_NAME}:${IMAGE_TAG} \
+                      .
                 '''
             }
         }
@@ -31,73 +33,92 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 sh '''
-                    . venv/bin/activate
-
-                    pytest
+                    docker run --rm \
+                        ${IMAGE_NAME}:${IMAGE_TAG} \
+                        python3 -m unittest discover tests
                 '''
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Replace Running Container') {
             steps {
                 sh '''
-                    docker build \
-                        -t ${IMAGE_NAME}:${BUILD_NUMBER} \
-                        -t ${IMAGE_NAME}:latest \
-                        .
+                    docker rm -f ${APP_NAME} || true
+
+                    docker run -d \
+                        --restart unless-stopped \
+                        --name ${APP_NAME} \
+                        -p 5000:5000 \
+                        ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
 
-        stage('Push to Docker Hub') {
-            steps {
-
-                withCredentials([
-                    usernamePassword(
-                        credentialsId: 'dockerhub',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASSWORD'
-                    )
-                ]) {
-
-                    sh '''
-                        echo "$DOCKER_PASSWORD" | docker login \
-                            -u "$DOCKER_USER" \
-                            --password-stdin
-
-                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
-                        docker tag ${IMAGE_NAME}:latest ${DOCKER_USER}/${IMAGE_NAME}:latest
-
-                        docker push ${DOCKER_USER}/${IMAGE_NAME}:${BUILD_NUMBER}
-                        docker push ${DOCKER_USER}/${IMAGE_NAME}:latest
-
-                        docker logout
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy') {
+        stage('Health Check') {
             steps {
                 sh '''
-                    cd infrastructure/deployment
-                    docker compose up -d --pull always
+                    echo "Waiting for application..."
+
+                    for i in $(seq 1 20)
+                    do
+                        if curl -fs http://localhost:5000 >/dev/null
+                        then
+                            echo "Application started successfully."
+                            exit 0
+                        fi
+
+                        sleep 2
+                    done
+
+                    docker logs ${APP_NAME}
+
+                    exit 1
                 '''
             }
         }
+
+        stage('Docker Status') {
+            steps {
+                sh '''
+                    echo
+                    echo "===== RUNNING CONTAINERS ====="
+                    docker ps
+
+                    echo
+                    echo "===== DOCKER IMAGES ====="
+                    docker images | grep 5xo || true
+
+                    echo
+                    echo "===== DISK USAGE ====="
+                    docker system df
+                '''
+            }
+        }
+
     }
 
     post {
 
         success {
-            echo "Build #${BUILD_NUMBER} completed successfully."
+
+            echo "Build completed successfully."
+
+            sh '''
+                docker image prune -f
+            '''
         }
 
         failure {
-            echo "Build #${BUILD_NUMBER} failed."
+
+            echo "Build failed."
+
+            sh '''
+                docker ps -a
+            '''
         }
 
         always {
+
             cleanWs()
         }
     }

@@ -1,15 +1,10 @@
 services:
-
   jenkins:
-
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        DOCKER_GID: 984
 
-    image: jenkins-devops:1.0
-
+    image: jenkins-devops:2.0
     container_name: jenkins-ctn
 
     restart: unless-stopped
@@ -18,13 +13,23 @@ services:
       - "8080:8080"
       - "50000:50000"
 
+    environment:
+      HOME: /home/gabriel
+      KUBECONFIG: /home/gabriel/.kube/config
+
     volumes:
+      # Jenkins Home
       - jenkins-vol:/var/jenkins_home
+
+      # Docker
       - /var/run/docker.sock:/var/run/docker.sock
 
-    environment:
-      TZ: Europe/Bucharest
+      # Kubernetes config (aceleași căi ca pe host)
+      - /home/gabriel/.kube:/home/gabriel/.kube:ro
+      - /home/gabriel/.minikube:/home/gabriel/.minikube:ro
+
+    group_add:
+      - "${DOCKER_GID}"
 
 volumes:
-
   jenkins-vol:
