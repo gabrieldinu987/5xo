@@ -2,46 +2,60 @@ apiVersion: apps/v1
 kind: Deployment
 
 metadata:
-  name: fivexo
-  namespace: fivexo
+  name: 5xo
+  namespace: 5xo
 
 spec:
-
-  replicas: 2
+  replicas: 1
 
   selector:
     matchLabels:
-      app: fivexo
+      app: 5xo
 
   template:
 
     metadata:
       labels:
-        app: fivexo
+        app: 5xo
 
     spec:
 
       containers:
 
-      - name: fivexo
+      - name: 5xo
 
         image: 5xo:latest
 
         imagePullPolicy: Never
 
         ports:
+
         - containerPort: 5000
 
         readinessProbe:
+
           httpGet:
             path: /
             port: 5000
+
           initialDelaySeconds: 5
-          periodSeconds: 10
+          periodSeconds: 5
 
         livenessProbe:
+
           httpGet:
             path: /
             port: 5000
+
           initialDelaySeconds: 15
-          periodSeconds: 20
+          periodSeconds: 10
+
+        resources:
+
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"

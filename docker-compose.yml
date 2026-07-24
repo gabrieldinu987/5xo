@@ -2,7 +2,10 @@ services:
 
   5xo:
 
-    image: gabrieldinu987/5xo:latest
+    build:
+      context: .
+
+    image: 5xo:latest
 
     container_name: 5xo
 
