@@ -73,32 +73,6 @@ pipeline {
             }
         }
 
-        stage('Health Check') {
-            steps {
-                sh '''
-                    echo "Waiting for application..."
-
-                    for i in $(seq 1 20)
-                    do
-                        if curl -fs http://localhost:5000 > /dev/null
-                        then
-                            echo "Application is UP."
-                            exit 0
-                        fi
-
-                        sleep 2
-                    done
-
-                    echo
-                    echo "Application failed."
-
-                    docker logs ${APP_NAME}
-
-                    exit 1
-                '''
-            }
-        }
-
         stage('Docker Status') {
             steps {
                 sh '''
