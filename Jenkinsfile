@@ -66,9 +66,9 @@ pipeline {
                     docker rm -f ${APP_NAME} 2>/dev/null || true
 
                     docker run -d \
-                        --name ${APP_NAME} \
-                        -p 5000:5000 \
-                        ${IMAGE_NAME}:${IMAGE_TAG}
+                    --name ${APP_NAME} \
+                    --network host \
+                    ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
