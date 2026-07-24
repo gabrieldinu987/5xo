@@ -3,226 +3,135 @@ pipeline {
     agent any
 
     environment {
-
         APP_NAME   = "5xo"
         IMAGE_NAME = "5xo"
         IMAGE_TAG  = "latest"
-
     }
 
     options {
-
         timestamps()
-
-        ansiColor('xterm')
-
     }
 
     stages {
 
         stage('Checkout') {
-
             steps {
-
                 checkout scm
-
             }
-
         }
 
-        stage('Project Information') {
-
+        stage('Project Info') {
             steps {
-
                 sh '''
+                    echo "=================================="
+                    echo "5XO CI/CD PIPELINE"
+                    echo "=================================="
 
-                    echo "========================================"
-
-                    echo "5XO CI/CD Pipeline"
-
-                    echo "========================================"
-
-                    echo
-
-                    echo "Job..............: ${JOB_NAME}"
-
-                    echo "Build............: ${BUILD_NUMBER}"
-
-                    echo "Branch...........: ${BRANCH_NAME}"
-
-                    echo "Workspace........: ${WORKSPACE}"
+                    echo "JOB       : $JOB_NAME"
+                    echo "BUILD     : $BUILD_NUMBER"
+                    echo "WORKSPACE : $WORKSPACE"
 
                     echo
-
+                    echo "Last commit:"
                     git log -1 --oneline
 
+                    echo
+                    docker --version
+                    python3 --version
                 '''
-
             }
-
         }
 
-        stage('Docker Build') {
-
+        stage('Build Docker Image') {
             steps {
-
                 sh '''
-
-                    docker build \
-                        -t ${IMAGE_NAME}:${IMAGE_TAG} .
-
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
-
             }
-
         }
 
         stage('Run Unit Tests') {
-
             steps {
-
                 sh '''
-
                     docker run --rm \
                         ${IMAGE_NAME}:${IMAGE_TAG} \
-                        python3 -m unittest discover tests
-
+                        python -m pytest -v
                 '''
-
             }
-
         }
 
         stage('Deploy Container') {
-
             steps {
-
                 sh '''
-
-                    docker rm -f ${APP_NAME} || true
+                    docker rm -f ${APP_NAME} 2>/dev/null || true
 
                     docker run -d \
                         --name ${APP_NAME} \
-                        --restart unless-stopped \
                         -p 5000:5000 \
                         ${IMAGE_NAME}:${IMAGE_TAG}
-
                 '''
-
             }
-
         }
 
         stage('Health Check') {
-
             steps {
-
                 sh '''
-
-                    echo
-
                     echo "Waiting for application..."
 
                     for i in $(seq 1 20)
-
                     do
-
-                        if curl -fs http://localhost:5000 >/dev/null
-
+                        if curl -fs http://localhost:5000 > /dev/null
                         then
-
-                            echo
-
                             echo "Application is UP."
-
                             exit 0
-
                         fi
 
                         sleep 2
-
                     done
 
                     echo
-
-                    echo "Application failed to start."
+                    echo "Application failed."
 
                     docker logs ${APP_NAME}
 
                     exit 1
-
                 '''
-
             }
-
         }
 
         stage('Docker Status') {
-
             steps {
-
                 sh '''
-
                     echo
-
-                    echo "Running Containers"
-
+                    echo "Running containers"
                     docker ps
 
                     echo
-
                     echo "Images"
-
-                    docker images | grep 5xo || true
-
-                    echo
-
-                    echo "Disk Usage"
-
-                    docker system df
-
+                    docker images
                 '''
-
             }
-
         }
-
     }
 
     post {
 
         success {
-
             echo 'Pipeline finished successfully.'
-
         }
 
         failure {
-
             sh '''
-
-                echo
-
-                echo "Container Logs"
-
                 docker logs ${APP_NAME} || true
-
             '''
-
         }
 
         always {
-
             sh '''
-
-                docker image prune -f
-
+                docker image prune -f || true
             '''
 
             cleanWs()
-
         }
-
     }
-
 }
