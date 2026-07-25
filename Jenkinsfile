@@ -93,6 +93,22 @@ pipeline {
                 '''
             }
         }
+        
+        stage('Kubernetes Check') {
+            steps {
+                sh '''
+                    echo "===== Kubernetes ====="
+
+                    kubectl version --client
+
+                    kubectl config current-context
+
+                    kubectl get nodes
+
+                    kubectl get ns
+                '''
+    }
+}
     }
 
     post {
