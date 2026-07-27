@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
 
     image: jenkins-devops:2.0
-
     container_name: jenkins-ctn
 
     restart: unless-stopped
@@ -18,19 +17,27 @@ services:
 
     environment:
       HOME: /var/jenkins_home
-      KUBECONFIG: /var/jenkins_home/.kube/config
+      KUBECONFIG: /home/gabriel/.kube/config
+
+    volumes:
+      - jenkins-vol:/var/jenkins_home
+
+      # Docker socket
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      # Kubernetes
+      - /home/gabriel/.kube:/home/gabriel/.kube:ro
+      - /home/gabriel/.minikube:/home/gabriel/.minikube:ro
 
     group_add:
       - "984"
 
-    volumes:
-      - jenkins-vol:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-
-      - /home/gabriel/.kube:/var/jenkins_home/.kube:ro
-      - /home/gabriel/.minikube:/var/jenkins_home/.minikube:ro
-
+    networks:
+      - minikube
 
 volumes:
-
   jenkins-vol:
+
+networks:
+  minikube:
+    external: true
