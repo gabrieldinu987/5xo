@@ -3,132 +3,232 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME   = "5xo"
+
         IMAGE_NAME = "5xo"
         IMAGE_TAG  = "latest"
+
+        K8S_NAMESPACE = "5xo"
+
     }
 
     options {
+
         timestamps()
+
+        disableConcurrentBuilds()
+
+        buildDiscarder(logRotator(
+                numToKeepStr: '10'
+        ))
+
     }
 
     stages {
 
         stage('Checkout') {
+
             steps {
+
                 checkout scm
+
             }
+
         }
 
-        stage('Project Info') {
+        stage('Environment Info') {
+
             steps {
+
                 sh '''
-                    echo "=================================="
-                    echo "5XO CI/CD PIPELINE"
-                    echo "=================================="
 
-                    echo "JOB       : $JOB_NAME"
-                    echo "BUILD     : $BUILD_NUMBER"
-                    echo "WORKSPACE : $WORKSPACE"
+                echo "========== SYSTEM =========="
 
-                    echo
-                    echo "Last commit:"
-                    git log -1 --oneline
+                whoami
+                pwd
 
-                    echo
-                    docker --version
-                    python3 --version
+                echo
+
+                echo "========== TOOLS =========="
+
+                docker --version
+                git --version
+                python3 --version
+                kubectl version --client
+                minikube version
+
+                echo
+
+                echo "========== KUBERNETES =========="
+
+                kubectl config current-context
+                kubectl get nodes
+
                 '''
+
             }
+
+        }
+
+        stage('Install Dependencies') {
+
+            steps {
+
+                sh '''
+
+                python3 -m pip install --upgrade pip
+
+                pip3 install -r requirements.txt
+
+                '''
+
+            }
+
+        }
+
+        stage('Run Tests') {
+
+            steps {
+
+                sh '''
+
+                pytest -v
+
+                '''
+
+            }
+
         }
 
         stage('Build Docker Image') {
+
             steps {
+
                 sh '''
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+
+                docker build \
+                    -t ${IMAGE_NAME}:${IMAGE_TAG} .
+
                 '''
+
             }
+
         }
 
-        stage('Run Unit Tests') {
+        stage('Load Image into Minikube') {
+
             steps {
+
                 sh '''
-                    docker run --rm \
-                        ${IMAGE_NAME}:${IMAGE_TAG} \
-                        python -m pytest -v
+
+                minikube image load ${IMAGE_NAME}:${IMAGE_TAG}
+
                 '''
+
             }
+
         }
 
-        stage('Deploy Container') {
-            steps {
-                sh '''
-                    docker rm -f ${APP_NAME} 2>/dev/null || true
+        stage('Deploy to Kubernetes') {
 
-                    docker run -d \
-                    --name ${APP_NAME} \
-                    --network host \
-                    ${IMAGE_NAME}:${IMAGE_TAG}
+            steps {
+
+                sh '''
+
+                kubectl apply -f k8s/namespace.yaml
+
+                kubectl apply -f k8s/deployment.yaml
+
+                kubectl apply -f k8s/service.yaml
+
                 '''
+
             }
+
         }
 
-        stage('Container Check') {
+        stage('Wait for Deployment') {
+
             steps {
+
                 sh '''
-                    echo "Checking container status..."
 
-                    docker ps --filter name=${APP_NAME}
+                kubectl rollout status \
+                    deployment/5xo \
+                    -n ${K8S_NAMESPACE}
 
-                    STATUS=$(docker inspect -f '{{.State.Status}}' ${APP_NAME})
-
-                    if [ "$STATUS" != "running" ]
-                    then
-                        echo "Container is not running"
-                        docker logs ${APP_NAME}
-                        exit 1
-                    fi
-
-                    echo "Container is running"
                 '''
+
             }
+
         }
-        
-        stage('Kubernetes Check') {
+
+        stage('Cluster Status') {
+
             steps {
+
                 sh '''
-                    echo "===== Kubernetes ====="
 
-                    kubectl version --client
+                echo
+                echo "========== PODS =========="
 
-                    kubectl config current-context
+                kubectl get pods \
+                    -n ${K8S_NAMESPACE} \
+                    -o wide
 
-                    kubectl get nodes
+                echo
+                echo "========== SERVICES =========="
 
-                    kubectl get ns
+                kubectl get svc \
+                    -n ${K8S_NAMESPACE}
+
+                echo
+                echo "========== DEPLOYMENTS =========="
+
+                kubectl get deployments \
+                    -n ${K8S_NAMESPACE}
+
                 '''
-    }
-}
+
+            }
+
+        }
+
     }
 
     post {
 
         success {
-            echo 'Pipeline finished successfully.'
+
+            echo '======================================'
+            echo 'Pipeline completed successfully!'
+            echo 'Application deployed to Kubernetes.'
+            echo '======================================'
+
         }
 
         failure {
+
             sh '''
-                docker logs ${APP_NAME} || true
+
+            echo
+            echo "========== DEBUG =========="
+
+            kubectl get all -n ${K8S_NAMESPACE} || true
+
+            kubectl describe pods -n ${K8S_NAMESPACE} || true
+
             '''
+
+            echo 'Pipeline failed.'
+
         }
 
         always {
-            sh '''
-                docker image prune -f || true
-            '''
 
             cleanWs()
+
         }
+
     }
+
 }
