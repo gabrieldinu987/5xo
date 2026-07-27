@@ -9,6 +9,10 @@ pipeline {
 
         K8S_NAMESPACE = "5xo"
 
+        HOME = "/home/gabriel"
+        MINIKUBE_HOME = "/home/gabriel/.minikube"
+        KUBECONFIG = "/home/gabriel/.kube/config"
+
     }
 
     options {
@@ -56,6 +60,13 @@ pipeline {
                 kubectl version --client
                 minikube version
 
+                echo "HOME=$HOME"
+                echo "MINIKUBE_HOME=$MINIKUBE_HOME"
+                echo "KUBECONFIG=$KUBECONFIG"
+
+                minikube profile list
+                minikube status
+
                 echo
 
                 echo "========== KUBERNETES =========="
@@ -90,7 +101,16 @@ pipeline {
 
                 sh '''
 
+                echo "HOME=$HOME"
+                echo "MINIKUBE_HOME=$MINIKUBE_HOME"
+                echo "KUBECONFIG=$KUBECONFIG"
+
+                minikube profile list
+                minikube status
+                kubectl get nodes
+
                 minikube image load ${IMAGE_NAME}:${IMAGE_TAG}
+                
 
                 '''
 
