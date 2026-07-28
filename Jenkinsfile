@@ -116,27 +116,23 @@ pipeline {
 
         stage('Cluster Status') {
             steps {
+                sh """
+                    echo "========== PODS =========="
+                    kubectl get pods -n fivexo -o wide
 
-                steps {
-                    sh """
-                        echo "========== PODS =========="
-                        kubectl get pods -n fivexo -o wide
+                    echo
+                    echo "========== SERVICES =========="
+                    kubectl get svc -n fivexo
 
-                        echo
-                        echo "========== SERVICES =========="
-                        kubectl get svc -n fivexo
+                    echo
+                    echo "========== DEPLOYMENTS =========="
+                    kubectl get deployments -n fivexo
 
-                        echo
-                        echo "========== DEPLOYMENTS =========="
-                        kubectl get deployments -n fivexo
-
-                        echo
-                        echo "========== EVENTS =========="
-                        kubectl get events -n fivexo \
-                            --sort-by=.metadata.creationTimestamp
-                    """
-                }
-
+                    echo
+                    echo "========== EVENTS =========="
+                    kubectl get events -n fivexo \
+                    --sort-by=.metadata.creationTimestamp
+                """
             }
         }
 
