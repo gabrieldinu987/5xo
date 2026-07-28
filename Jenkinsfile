@@ -73,7 +73,7 @@ pipeline {
                 docker build -t 5xo:latest .
                 eval $(minikube docker-env -u)
 
-                echo "Verifying image..."
+                echo "Verifica imagine..."
 
                 docker exec minikube ctr -n=k8s.io images ls | grep ${IMAGE_NAME}
                 '''
