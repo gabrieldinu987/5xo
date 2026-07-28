@@ -67,7 +67,7 @@ pipeline {
                 sh '''
                 set -e
 
-                echo "Importing image into Minikube..."
+                echo "Importa imagine in Minikube..."
 
                 eval $(minikube docker-env)
                 docker build -t 5xo:latest .
