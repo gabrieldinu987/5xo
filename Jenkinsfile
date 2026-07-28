@@ -69,8 +69,9 @@ pipeline {
 
                 echo "Importing image into Minikube..."
 
-                docker save ${IMAGE_NAME}:${IMAGE_TAG} | \
-                docker exec -i minikube ctr -n=k8s.io images import -
+                eval $(minikube docker-env)
+                docker build -t 5xo:latest .
+                eval $(minikube docker-env -u)
 
                 echo "Verifying image..."
 
