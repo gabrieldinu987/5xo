@@ -3,24 +3,17 @@ pipeline {
     agent any
 
     environment {
-
         IMAGE_NAME = "5xo"
         IMAGE_TAG = "latest"
-
-        K8S_NAMESPACE = "5xo"
-
-        HOME = "/home/gabriel"
-        MINIKUBE_HOME = "/home/gabriel/.minikube"
-        KUBECONFIG = "/home/gabriel/.kube/config"
+        NAMESPACE = "5xo"
+        DEPLOYMENT = "5xo"
+        CONTAINER = "5xo"
     }
 
     options {
         timestamps()
         disableConcurrentBuilds()
-
-        buildDiscarder(logRotator(
-            numToKeepStr: '10'
-        ))
+        buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
     stages {
@@ -31,120 +24,110 @@ pipeline {
             }
         }
 
-        stage('Environment Info') {
-
+        stage('Environment') {
             steps {
-
                 sh '''
-                echo "========== SYSTEM =========="
+                set -e
 
+                echo "========== USER =========="
                 whoami
                 pwd
 
                 echo
                 echo "========== TOOLS =========="
-
                 docker --version
+                kubectl version --client
                 git --version
                 python3 --version
-                kubectl version --client
-                minikube version
 
                 echo
-                echo "========== ENVIRONMENT =========="
-
-                echo "HOME=$HOME"
-                echo "MINIKUBE_HOME=$MINIKUBE_HOME"
-                echo "KUBECONFIG=$KUBECONFIG"
-
-                echo
-                echo "========== CLUSTER =========="
-
+                echo "========== KUBERNETES =========="
+                kubectl config current-context
                 kubectl cluster-info
-
-                echo
                 kubectl get nodes
-
-                echo
-                docker images | grep ${IMAGE_NAME} || true
                 '''
             }
         }
 
         stage('Build Docker Image') {
-
             steps {
-
                 sh '''
+                set -e
+
                 docker build \
                     -t ${IMAGE_NAME}:${IMAGE_TAG} .
                 '''
             }
         }
 
-        stage('Deploy to Kubernetes') {
-
+        stage('Load Image into Minikube') {
             steps {
-
                 sh '''
+                set -e
 
-                kubectl apply -f k8s/namespace.yaml
+                echo "Importing image into Minikube..."
 
-                kubectl apply -f k8s/deployment.yaml
+                docker save ${IMAGE_NAME}:${IMAGE_TAG} | \
+                docker exec -i minikube ctr -n=k8s.io images import -
 
-                kubectl apply -f k8s/service.yaml
+                echo "Verifying image..."
 
+                docker exec minikube ctr -n=k8s.io images ls | grep ${IMAGE_NAME}
                 '''
             }
         }
 
-        stage('Wait for Deployment') {
-
+        stage('Deploy Namespace') {
             steps {
-
                 sh '''
+                kubectl apply -f k8s/namespace.yaml
+                '''
+            }
+        }
 
-                kubectl rollout status \
-                    deployment/5xo \
-                    -n ${K8S_NAMESPACE} \
+        stage('Deploy Application') {
+            steps {
+                sh '''
+                kubectl apply -f k8s/deployment.yaml
+                kubectl apply -f k8s/service.yaml
+                '''
+            }
+        }
+
+        stage('Restart Deployment') {
+            steps {
+                sh '''
+                kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
+
+                kubectl rollout status deployment/${DEPLOYMENT} \
+                    -n ${NAMESPACE} \
                     --timeout=180s
-
                 '''
             }
         }
 
         stage('Cluster Status') {
-
             steps {
-
                 sh '''
-
                 echo
-                echo "========== PODS =========="
-
-                kubectl get pods \
-                    -n ${K8S_NAMESPACE} \
-                    -o wide
+                echo "========== NODES =========="
+                kubectl get nodes
 
                 echo
                 echo "========== DEPLOYMENTS =========="
+                kubectl get deployment -n ${NAMESPACE}
 
-                kubectl get deployments \
-                    -n ${K8S_NAMESPACE}
+                echo
+                echo "========== PODS =========="
+                kubectl get pods -n ${NAMESPACE} -o wide
 
                 echo
                 echo "========== SERVICES =========="
-
-                kubectl get svc \
-                    -n ${K8S_NAMESPACE}
+                kubectl get svc -n ${NAMESPACE}
 
                 echo
                 echo "========== EVENTS =========="
-
-                kubectl get events \
-                    -n ${K8S_NAMESPACE} \
-                    --sort-by=.lastTimestamp
-
+                kubectl get events -n ${NAMESPACE} --sort-by=.metadata.creationTimestamp
                 '''
             }
         }
@@ -157,8 +140,7 @@ pipeline {
 
             echo '''
 ==========================================
-Pipeline completed successfully!
-Application deployed to Kubernetes.
+Deployment completed successfully
 ==========================================
 '''
         }
@@ -166,38 +148,28 @@ Application deployed to Kubernetes.
         failure {
 
             sh '''
-
             echo
             echo "========== DEBUG =========="
 
-            kubectl get all -n ${K8S_NAMESPACE} || true
+            kubectl get all -n ${NAMESPACE} || true
 
             echo
-            echo "========== POD DESCRIBE =========="
-
-            kubectl describe pods \
-                -n ${K8S_NAMESPACE} || true
+            kubectl describe deployment ${DEPLOYMENT} -n ${NAMESPACE} || true
 
             echo
-            echo "========== POD LOGS =========="
+            kubectl describe pods -n ${NAMESPACE} || true
 
-            POD=$(kubectl get pods -n ${K8S_NAMESPACE} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+            echo
+            kubectl logs -n ${NAMESPACE} -l app=5xo --all-containers=true || true
 
-            if [ ! -z "$POD" ]; then
-                kubectl logs "$POD" -n ${K8S_NAMESPACE} || true
-            fi
-
+            echo
+            kubectl get events -n ${NAMESPACE} --sort-by=.metadata.creationTimestamp || true
             '''
-
-            echo 'Pipeline failed.'
         }
 
         always {
 
             cleanWs()
-
         }
-
     }
-
 }

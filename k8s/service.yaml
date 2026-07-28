@@ -6,18 +6,13 @@ metadata:
   namespace: 5xo
 
 spec:
+  type: NodePort
 
   selector:
     app: 5xo
 
-  type: NodePort
-
   ports:
-
-  - protocol: TCP
-
-    port: 5000
-
-    targetPort: 5000
-
-    nodePort: 30080
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 30080
