@@ -4,9 +4,11 @@ pipeline {
 
     environment {
 
-    IMAGE_NAME = "5xo"
-    IMAGE_TAG = "latest"
-    K8S_NAMESPACE = "fivexo"
+    IMAGE_NAME      = "5xo"
+    IMAGE_TAG       = "latest"
+
+    APP_NAME        = "fivexo"
+    K8S_NAMESPACE   = "fivexo"
 
     }
 
@@ -95,40 +97,45 @@ pipeline {
         }
 
         stage('Restart Deployment') {
-            steps {
-                sh '''
-                kubectl rollout restart deployment/${DEPLOYMENT} -n ${NAMESPACE}
 
-                kubectl rollout status deployment/${DEPLOYMENT} \
-                    -n ${NAMESPACE} \
-                    --timeout=180s
-                '''
+            steps {
+                script {
+                    sh """
+                        set -e
+
+                        kubectl rollout restart deployment/fivexo -n fivexo
+
+                        kubectl rollout status deployment/fivexo \
+                            -n fivexo \
+                            --timeout=180s
+                    """
+                }
             }
         }
 
         stage('Cluster Status') {
             steps {
-                sh '''
-                echo
-                echo "========== NODES =========="
-                kubectl get nodes
 
-                echo
-                echo "========== DEPLOYMENTS =========="
-                kubectl get deployment -n ${NAMESPACE}
+                steps {
+                    sh """
+                        echo "========== PODS =========="
+                        kubectl get pods -n fivexo -o wide
 
-                echo
-                echo "========== PODS =========="
-                kubectl get pods -n ${NAMESPACE} -o wide
+                        echo
+                        echo "========== SERVICES =========="
+                        kubectl get svc -n fivexo
 
-                echo
-                echo "========== SERVICES =========="
-                kubectl get svc -n ${NAMESPACE}
+                        echo
+                        echo "========== DEPLOYMENTS =========="
+                        kubectl get deployments -n fivexo
 
-                echo
-                echo "========== EVENTS =========="
-                kubectl get events -n ${NAMESPACE} --sort-by=.metadata.creationTimestamp
-                '''
+                        echo
+                        echo "========== EVENTS =========="
+                        kubectl get events -n fivexo \
+                            --sort-by=.metadata.creationTimestamp
+                    """
+                }
+
             }
         }
 
@@ -139,36 +146,46 @@ pipeline {
         success {
 
             echo '''
-==========================================
-Deployment completed successfully
-==========================================
-'''
+            ==========================================
+            Deployment completed successfully
+            ==========================================
+            '''
         }
 
         failure {
 
-            sh '''
-            echo
-            echo "========== DEBUG =========="
+            sh """
+                echo
+                echo "========== DEBUG =========="
 
-            kubectl get all -n ${NAMESPACE} || true
+                kubectl get all -n fivexo || true
 
-            echo
-            kubectl describe deployment ${DEPLOYMENT} -n ${NAMESPACE} || true
+                echo
+                echo "========== DEPLOYMENT =========="
+                kubectl describe deployment fivexo -n fivexo || true
 
-            echo
-            kubectl describe pods -n ${NAMESPACE} || true
+                echo
+                echo "========== PODS =========="
+                kubectl describe pods -n fivexo || true
 
-            echo
-            kubectl logs -n ${NAMESPACE} -l app=5xo --all-containers=true || true
+                echo
+                echo "========== LOGS =========="
+                kubectl logs \
+                    -n fivexo \
+                    -l app=fivexo \
+                    --all-containers=true || true
 
-            echo
-            kubectl get events -n ${NAMESPACE} --sort-by=.metadata.creationTimestamp || true
-            '''
+                echo
+                echo "========== EVENTS =========="
+                kubectl get events \
+                    -n fivexo \
+                    --sort-by=.metadata.creationTimestamp || true
+            """
+
+            echo 'Pipeline failed.'
         }
 
         always {
-
             cleanWs()
         }
     }
