@@ -3,11 +3,11 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "5xo"
-        IMAGE_TAG = "latest"
-        NAMESPACE = "5xo"
-        DEPLOYMENT = "5xo"
-        CONTAINER = "5xo"
+
+    IMAGE_NAME = "5xo"
+    IMAGE_TAG = "latest"
+    K8S_NAMESPACE = "fivexo"
+
     }
 
     options {

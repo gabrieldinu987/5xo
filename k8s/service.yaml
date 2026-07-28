@@ -2,14 +2,14 @@ apiVersion: v1
 kind: Service
 
 metadata:
-  name: 5xo-service
-  namespace: 5xo
+  name: fivexo-service
+  namespace: fivexo
 
 spec:
   type: NodePort
 
   selector:
-    app: 5xo
+    app: fivexo
 
   ports:
     - protocol: TCP
