@@ -1,18 +1,5 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.pytest_cache/
-
-# Virtual Environment
-venv/
-
 # VS Code
 .vscode/
-
-# JetBrains
-.idea/
 
 # Logs
 *.log
@@ -20,13 +7,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
-
-# Pytest
-.pytest_cache/
-
-# Coverage
-.coverage
-htmlcov/
 
 # Environment
 .env
