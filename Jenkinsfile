@@ -51,17 +51,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                set -e
-
-                docker build \
-                    -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                '''
-            }
-        }
-
+        
         stage('Load Image into Minikube') {
             steps {
                 sh '''
