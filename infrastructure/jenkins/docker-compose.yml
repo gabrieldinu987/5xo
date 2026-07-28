@@ -1,11 +1,10 @@
 services:
   jenkins:
-    build:
-      context: .
-      dockerfile: Dockerfile
 
     image: jenkins-devops:2.0
+
     container_name: jenkins-ctn
+
     restart: unless-stopped
 
     ports:
@@ -15,11 +14,16 @@ services:
     environment:
       HOME: /var/jenkins_home
       KUBECONFIG: /home/gabriel/.kube/config
+      MINIKUBE_HOME: /home/gabriel/.minikube
 
     volumes:
+
       - jenkins-vol:/var/jenkins_home
+
       - /var/run/docker.sock:/var/run/docker.sock
+
       - /home/gabriel/.kube:/home/gabriel/.kube:ro
+
       - /home/gabriel/.minikube:/home/gabriel/.minikube:ro
 
     group_add:
@@ -34,4 +38,3 @@ volumes:
 networks:
   minikube:
     external: true
-    name: minikube

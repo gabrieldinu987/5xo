@@ -5,38 +5,30 @@ pipeline {
     environment {
 
         IMAGE_NAME = "5xo"
-        IMAGE_TAG  = "latest"
+        IMAGE_TAG = "latest"
 
         K8S_NAMESPACE = "5xo"
 
         HOME = "/home/gabriel"
         MINIKUBE_HOME = "/home/gabriel/.minikube"
         KUBECONFIG = "/home/gabriel/.kube/config"
-
     }
 
     options {
-
         timestamps()
-
         disableConcurrentBuilds()
 
         buildDiscarder(logRotator(
-                numToKeepStr: '10'
+            numToKeepStr: '10'
         ))
-
     }
 
     stages {
 
         stage('Checkout') {
-
             steps {
-
                 checkout scm
-
             }
-
         }
 
         stage('Environment Info') {
@@ -44,14 +36,12 @@ pipeline {
             steps {
 
                 sh '''
-
                 echo "========== SYSTEM =========="
 
                 whoami
                 pwd
 
                 echo
-
                 echo "========== TOOLS =========="
 
                 docker --version
@@ -60,62 +50,36 @@ pipeline {
                 kubectl version --client
                 minikube version
 
+                echo
+                echo "========== ENVIRONMENT =========="
+
                 echo "HOME=$HOME"
                 echo "MINIKUBE_HOME=$MINIKUBE_HOME"
                 echo "KUBECONFIG=$KUBECONFIG"
 
-                minikube profile list
-                minikube status
+                echo
+                echo "========== CLUSTER =========="
+
+                kubectl cluster-info
 
                 echo
-
-                echo "========== KUBERNETES =========="
-
-                kubectl config current-context
                 kubectl get nodes
 
+                echo
+                docker images | grep ${IMAGE_NAME} || true
                 '''
-
             }
-
-        }        
+        }
 
         stage('Build Docker Image') {
 
             steps {
 
                 sh '''
-
                 docker build \
                     -t ${IMAGE_NAME}:${IMAGE_TAG} .
-
                 '''
-
             }
-
-        }
-
-        stage('Load Image into Minikube') {
-
-            steps {
-
-                sh '''
-
-                echo "HOME=$HOME"
-                echo "MINIKUBE_HOME=$MINIKUBE_HOME"
-                echo "KUBECONFIG=$KUBECONFIG"
-
-                minikube profile list
-                minikube status
-                kubectl get nodes
-
-                minikube image load ${IMAGE_NAME}:${IMAGE_TAG}
-                
-
-                '''
-
-            }
-
         }
 
         stage('Deploy to Kubernetes') {
@@ -131,9 +95,7 @@ pipeline {
                 kubectl apply -f k8s/service.yaml
 
                 '''
-
             }
-
         }
 
         stage('Wait for Deployment') {
@@ -144,12 +106,11 @@ pipeline {
 
                 kubectl rollout status \
                     deployment/5xo \
-                    -n ${K8S_NAMESPACE}
+                    -n ${K8S_NAMESPACE} \
+                    --timeout=180s
 
                 '''
-
             }
-
         }
 
         stage('Cluster Status') {
@@ -166,21 +127,26 @@ pipeline {
                     -o wide
 
                 echo
+                echo "========== DEPLOYMENTS =========="
+
+                kubectl get deployments \
+                    -n ${K8S_NAMESPACE}
+
+                echo
                 echo "========== SERVICES =========="
 
                 kubectl get svc \
                     -n ${K8S_NAMESPACE}
 
                 echo
-                echo "========== DEPLOYMENTS =========="
+                echo "========== EVENTS =========="
 
-                kubectl get deployments \
-                    -n ${K8S_NAMESPACE}
+                kubectl get events \
+                    -n ${K8S_NAMESPACE} \
+                    --sort-by=.lastTimestamp
 
                 '''
-
             }
-
         }
 
     }
@@ -189,11 +155,12 @@ pipeline {
 
         success {
 
-            echo '======================================'
-            echo 'Pipeline completed successfully!'
-            echo 'Application deployed to Kubernetes.'
-            echo '======================================'
-
+            echo '''
+==========================================
+Pipeline completed successfully!
+Application deployed to Kubernetes.
+==========================================
+'''
         }
 
         failure {
@@ -205,12 +172,24 @@ pipeline {
 
             kubectl get all -n ${K8S_NAMESPACE} || true
 
-            kubectl describe pods -n ${K8S_NAMESPACE} || true
+            echo
+            echo "========== POD DESCRIBE =========="
+
+            kubectl describe pods \
+                -n ${K8S_NAMESPACE} || true
+
+            echo
+            echo "========== POD LOGS =========="
+
+            POD=$(kubectl get pods -n ${K8S_NAMESPACE} -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+
+            if [ ! -z "$POD" ]; then
+                kubectl logs "$POD" -n ${K8S_NAMESPACE} || true
+            fi
 
             '''
 
             echo 'Pipeline failed.'
-
         }
 
         always {
