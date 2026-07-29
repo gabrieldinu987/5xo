@@ -1,0 +1,25 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+
+metadata:
+  name: fivexo
+
+  namespace: monitoring
+
+spec:
+
+  selector:
+    matchLabels:
+      app: fivexo
+
+  namespaceSelector:
+    matchNames:
+      - fivexo
+
+  endpoints:
+
+  - port: http
+
+    path: /metrics
+
+    interval: 15s

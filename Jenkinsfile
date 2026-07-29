@@ -97,6 +97,14 @@ pipeline {
             }
         }
 
+        stage ('Deploy Monitoring') {
+            steps {
+                sh '''
+                kubectl apply -f k8s/servicemonitor.yaml
+                '''
+            }
+        }
+
         stage('Restart Deployment') {
 
             steps {
