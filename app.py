@@ -2,7 +2,10 @@ from flask import Flask, render_template, jsonify, request
 
 from game.game import Game
 
+from prometheus_flask_exporter import PrometheusMetrics
+
 app = Flask(__name__)
+metrics = PrometheusMetrics(app)
 
 game = Game()
 
