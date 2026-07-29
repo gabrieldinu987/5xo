@@ -2,13 +2,10 @@ from flask import Flask, render_template, jsonify, request
 
 from game.game import Game
 
-try:
-    from prometheus_flask_exporter import PrometheusMetrics
-except ImportError:
-    PrometheusMetrics = None
+from prometheus_flask_exporter import PrometheusMetrics
 
 app = Flask(__name__)
-metrics = PrometheusMetrics(app) if PrometheusMetrics else None
+metrics = PrometheusMetrics(app)
 
 game = Game()
 
