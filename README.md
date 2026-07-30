@@ -1,94 +1,106 @@
 # 5XO — Five in a Row
 
-Joc de tip "X și 0" extins, jucat pe o tablă de **50 × 50 celule**. Câștigă primul jucător care aliniază **5 simboluri consecutive**, pe orizontală, verticală sau diagonală. Aplicația este scrisă în **Flask** (backend Python) cu un frontend simplu în **HTML / CSS / JavaScript**, și este livrată printr-un pipeline **CI/CD** complet: Jenkins → Docker → Kubernetes (Minikube).
+Aplicație web care implementează jocul „X și O" (Gomoku / Five in a Row) pe o tablă de **50×50** celule. Câștigă primul jucător care aliniază **5 simboluri identice**, pe orizontală, verticală sau diagonală.
+
+Proiectul include backend-ul jocului (Python/Flask), interfața web (HTML/CSS/JS), containerizarea (Docker), desfășurarea în Kubernetes (Minikube) și un pipeline CI/CD complet (Jenkins).
 
 ---
 
 ## Cuprins
 
-- [Cum se joacă](#cum-se-joacă)
-- [Arhitectura aplicației](#arhitectura-aplicației)
+- [Arhitectură](#arhitectură)
 - [Structura proiectului](#structura-proiectului)
+- [Reguli de joc](#reguli-de-joc)
 - [Rulare locală](#rulare-locală)
 - [Rulare cu Docker](#rulare-cu-docker)
+- [Desfășurare pe Kubernetes](#desfășurare-pe-kubernetes)
+- [Pipeline CI/CD (Jenkins)](#pipeline-cicd-jenkins)
 - [API](#api)
-- [CI/CD — Jenkins, Docker, Kubernetes](#cicd--jenkins-docker-kubernetes)
-- [Infrastructura Jenkins](#infrastructura-jenkins)
-- [Deployment Kubernetes](#deployment-kubernetes)
-- [Fluxul complet end-to-end](#fluxul-complet-end-to-end)
+- [Tehnologii folosite](#tehnologii-folosite)
 
 ---
 
-## Cum se joacă
-
-- Tabla are **50 × 50** de celule, inițial goale.
-- Jucătorii `X` și `O` mută pe rând, câte o celulă.
-- După fiecare mutare se verifică 4 direcții (orizontală, verticală, cele 2 diagonale) pornind din celula jucată; dacă există **5 simboluri identice consecutive**, jocul se termină cu un câștigător.
-- Dacă tabla se umple fără câștigător, jocul se termină la egalitate (`draw`).
-- Butonul **Restart Game** apelează `/reset` și repornește partida.
-
-## Arhitectura aplicației
-
-Codul Python este organizat pe straturi, fiecare cu o singură responsabilitate:
+## Arhitectură
 
 ```
-app.py               → rute Flask: "/", "/state", "/move", "/reset"
-   └── game/Game      → fațadă simplă peste GameService
-         └── game/GameService → regulile jocului (rând curent, victorie, egalitate)
-               ├── game/Board          → grid 50×50, plasare simbol, validare poziții
-               └── game/WinnerChecker  → verifică 5 în linie pe 4 direcții
+Browser (index.html + game.js + style.css)
+        │  fetch() → POST /move, GET /state, POST /reset
+        ▼
+Flask (app.py)
+        │
+        ▼
+Game (game.py)              — fațadă simplă
+        │
+        ▼
+GameService (service.py)    — regulile jocului
+        │
+        ├── Board (board.py)          — grila 50×50
+        └── WinnerChecker (winner.py) — verificare victorie
 ```
 
-- **`Board`** știe doar despre grid: `is_inside`, `is_empty`, `place_symbol`.
-- **`WinnerChecker`** este `@classmethod`/`@staticmethod`, fără stare proprie — primește tabla și poziția ultimei mutări și numără simbolurile consecutive în ambele sensuri ale fiecărei direcții.
-- **`GameService`** orchestrează: plasează simbolul, verifică victoria, verifică egalitatea, schimbă jucătorul curent.
-- **`Game`** este un wrapper subțire folosit de `app.py`, ca punct unic de intrare în logica jocului.
+Logica jocului (pachetul `game/`) este complet independentă de stratul web — Flask doar o expune printr-un API REST minimal.
 
-Frontend-ul (`game.js`) este *state-driven*: după fiecare acțiune (mutare/reset) preia starea completă de la server (`board`, `current_player`, `game_over`, `winner`) și redesenează tabla — nu ține propria logică de joc.
+---
 
 ## Structura proiectului
 
 ```
 .
-├── app.py                 # Server Flask, rute HTTP
 ├── game/
-│   ├── __init__.py
-│   ├── game.py             # Game — fațadă
-│   ├── service.py          # GameService — regulile jocului
-│   ├── board.py            # Board — grid 50×50
-│   └── winner.py           # WinnerChecker — detecție victorie
-├── templates/
-│   └── index.html          # Pagina principală (Jinja2)
+│   ├── __init__.py     # marchează game/ ca pachet Python
+│   ├── game.py         # clasa Game — fațadă peste GameService
+│   ├── service.py      # clasa GameService — regulile jocului
+│   ├── board.py        # clasa Board — grila 50x50
+│   └── winner.py       # clasa WinnerChecker — verificare aliniere de 5
+│
 ├── static/
-│   ├── css/style.css       # Layout + stilizare tablă
-│   └── js/game.js          # Logică frontend (fetch API)
-├── requirements.txt
-├── Dockerfile              # Imagine aplicație (python:3.13-slim)
+│   ├── css/style.css    # stilizare tablă, celule, panouri
+│   └── js/game.js       # logică frontend, comunicare cu API-ul
+├── templates/
+│   └── index.html       # pagina principală (Jinja2)
+│
+├── app.py                # aplicația Flask + rutele API
+├── requirements.txt      # dependințe Python (Flask ≥ 3.1)
+├── Dockerfile             # imaginea aplicației 5XO
 │
 ├── k8s/
-│   ├── namespace.yaml
-│   ├── deployment.yaml
-│   └── service.yaml
+│   ├── namespace.yaml     # namespace „fivexo”
+│   ├── deployment.yaml    # Deployment (1 replică, probes, resurse)
+│   └── service.yaml       # Service NodePort (port extern 30080)
 │
-├── jenkins/
-    ├── Jenkinsfile               # Pipeline CI/CD
-    ├── docker-compose.yml        # Container Jenkins (agent DevOps)
-    ├── Dockerfile (jenkins)      # Imagine Jenkins cu Docker CLI, kubectl, minikube
-    └── plugins.txt               # Plugin-uri Jenkins instalate automat
+├── Jenkinsfile             # pipeline CI/CD declarativ
+├── docker-compose.yml      # rulează containerul Jenkins local
+├── Dockerfile (jenkins)     # imagine Jenkins personalizată (docker, kubectl, minikube)
+└── plugins.txt              # plugin-uri Jenkins instalate automat
 ```
 
-> Notă: `app.py` importă `from game.game import Game`, deci fișierele `game.py`, `service.py`, `board.py`, `winner.py` trebuie să fie într-un pachet `game/` (alături de `__init__.py`).
+> Notă: structura de directoare (`game/`, `static/`, `templates/`, `k8s/`) este cea presupusă de importurile din cod (`from game.board import Board`) și de `url_for('static', ...)` din `index.html`.
+
+---
+
+## Reguli de joc
+
+- Tabla are **50 × 50** celule.
+- Jucătorii alternează, `X` mută primul.
+- La fiecare mutare se verifică 4 direcții posibile de aliniere: orizontală, verticală, diagonala `\` și diagonala `/`.
+- Jocul se termină cu **victorie** când un jucător aliniază 5 (sau mai multe) simboluri consecutive pe oricare din cele 4 direcții.
+- Jocul se termină cu **egalitate** dacă tabla se umple complet fără câștigător.
+- O mutare pe o celulă ocupată, în afara tablei, sau după terminarea jocului este respinsă cu eroare (HTTP 400).
+
+---
 
 ## Rulare locală
 
-Cerințe: Python 3.10+ (recomandat 3.13).
+Cerințe: Python 3.13+ (recomandat).
 
 ```bash
 pip install -r requirements.txt
-python3 app.py
+python app.py
 ```
 
 Aplicația pornește pe `http://localhost:5000`.
+
+---
 
 ## Rulare cu Docker
 
@@ -97,96 +109,83 @@ docker build -t 5xo:latest .
 docker run -p 5000:5000 5xo:latest
 ```
 
-Imaginea include un `HEALTHCHECK` care verifică periodic `http://localhost:5000`.
+Aplicația va fi disponibilă la `http://localhost:5000`.
+
+---
+
+## Desfășurare pe Kubernetes
+
+Presupune un cluster Minikube pornit local.
+
+```bash
+# 1. Construiește imaginea direct în demonul Docker al Minikube
+eval $(minikube docker-env)
+docker build -t 5xo:latest .
+eval $(minikube docker-env -u)
+
+# 2. Aplică manifestele
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+
+# 3. Verifică statusul
+kubectl get pods -n fivexo
+kubectl get svc -n fivexo
+```
+
+Aplicația va fi accesibilă pe portul `30080` al nodului Minikube (`imagePullPolicy: Never`, deoarece imaginea este locală, nu dintr-un registry extern).
+
+---
+
+## Pipeline CI/CD (Jenkins)
+
+`Jenkinsfile` definește un pipeline declarativ cu 8 etape, rulat automat la fiecare build:
+
+| # | Stage | Descriere |
+|---|-------|-----------|
+| 1 | **Checkout** | Clonează codul sursă din repository (`checkout scm`). |
+| 2 | **Environment** | Afișează diagnostic: unelte instalate, context Kubernetes, noduri cluster. |
+| 3 | **Build Docker Image** | Construiește imaginea `5xo:latest` din `Dockerfile`. |
+| 4 | **Load Image into Minikube** | Reconstruiește imaginea în demonul Docker intern al Minikube și verifică prezența ei. |
+| 5 | **Deploy Namespace** | Aplică `k8s/namespace.yaml`. |
+| 6 | **Deploy Application** | Aplică `k8s/deployment.yaml` și `k8s/service.yaml`. |
+| 7 | **Restart Deployment** | `kubectl rollout restart` + `rollout status` (timeout 180s) pentru a garanta rularea imaginii noi. |
+| 8 | **Cluster Status** | Afișează poduri, servicii, deployment-uri și evenimente din namespace-ul `fivexo`. |
+
+La eșec (`post { failure }`), pipeline-ul colectează automat log-uri, descrieri de resurse și evenimente pentru depanare rapidă. `post { always }` curăță workspace-ul (`cleanWs()`).
+
+### Mediul Jenkins
+
+Jenkins rulează într-o imagine personalizată (`Dockerfile` + `plugins.txt`), pornind de la `jenkins/jenkins:lts`, cu Docker CLI, `kubectl` și Minikube preinstalate. `docker-compose.yml` pornește acest container local, montând `/var/run/docker.sock` și configurația `kubectl`/Minikube a mașinii gazdă, astfel încât Jenkins să poată construi imagini și comunica direct cu clusterul.
+
+---
 
 ## API
 
-| Metodă | Endpoint  | Descriere                                             |
-|--------|-----------|--------------------------------------------------------|
-| GET    | `/`       | Randează pagina principală (`index.html`)              |
-| GET    | `/state`  | Returnează starea curentă a jocului (JSON)              |
-| POST   | `/move`   | Body: `{ "row": int, "col": int }` — plasează o mutare  |
-| POST   | `/reset`  | Repornește jocul                                        |
+| Metodă | Rută | Descriere |
+|--------|------|-----------|
+| `GET`  | `/`       | Randează pagina principală (`index.html`). |
+| `GET`  | `/state`  | Returnează starea curentă a jocului (JSON). |
+| `POST` | `/move`   | Efectuează o mutare. Body: `{"row": int, "col": int}`. Returnează starea actualizată sau eroare (400). |
+| `POST` | `/reset`  | Resetează jocul la starea inițială. |
 
-Exemplu răspuns `/state`:
+**Exemplu răspuns `/state`:**
 
 ```json
 {
-  "board": [[null, "X", null, ...], ...],
-  "current_player": "O",
+  "board": [[null, null, ...], ...],
+  "current_player": "X",
   "game_over": false,
   "winner": null
 }
 ```
 
-O mutare invalidă (poziție ocupată, în afara tablei, sau joc deja terminat) răspunde cu **HTTP 400** și `{ "success": false, "message": "..." }`.
-
 ---
 
-## CI/CD — Jenkins, Docker, Kubernetes
+## Tehnologii folosite
 
-Pipeline-ul (`Jenkinsfile`) rulează la fiecare `git push` și trece prin 8 etape:
-
-1. **Checkout** — `checkout scm`
-2. **Environment** — verifică `docker`, `kubectl`, `git`, `python3`, contextul cluster-ului curent
-3. **Build Docker Image** — `docker build -t 5xo:latest .`
-4. **Load Image into Minikube** — comută la daemon-ul Docker al Minikube (`minikube docker-env`), reconstruiește imaginea acolo, apoi verifică prezența ei cu `ctr images ls`
-5. **Deploy Namespace** — `kubectl apply -f k8s/namespace.yaml`
-6. **Deploy Application** — `kubectl apply -f k8s/deployment.yaml` + `k8s/service.yaml`
-7. **Restart Deployment** — `kubectl rollout restart deployment/fivexo` + `kubectl rollout status --timeout=180s`
-8. **Cluster Status** — afișează pods, services, deployments și evenimente din namespace-ul `fivexo`
-
-Configurări suplimentare ale pipeline-ului:
-- `disableConcurrentBuilds()` — nu rulează două build-uri simultan
-- `buildDiscarder(logRotator(numToKeepStr: '10'))` — păstrează ultimele 10 build-uri
-- **`post { failure { ... } }`** — la eșec, colectează automat `kubectl describe deployment/pods`, logurile aplicației și evenimentele recente, pentru debugging rapid
-- **`post { always { cleanWs() } }`** — curăță workspace-ul după fiecare rulare
-
-## Infrastructura Jenkins
-
-Jenkins rulează el însuși într-un container (`docker-compose.yml`), construit dintr-o imagine dedicată (`Dockerfile` DevOps) care conține:
-
-- **Docker CLI** — pentru a construi imaginea aplicației
-- **kubectl** — pentru a comunica cu clusterul Kubernetes
-- **Minikube CLI** — pentru a încărca imaginea locală în cluster
-- Plugin-urile din `plugins.txt`: `docker-workflow`, `workflow-aggregator`, `pipeline-stage-view`, `git`, `github`, `credentials`, `ssh-credentials`, `matrix-auth`, `role-strategy`, `blueocean`, `ws-cleanup`
-
-Pentru a putea construi imagini și accesa clusterul de pe host, containerul Jenkins montează:
-
-| Volum / variabilă        | Rol                                                             |
-|---------------------------|------------------------------------------------------------------|
-| `jenkins-vol`              | volum persistent pentru `/var/jenkins_home`                     |
-| `/var/run/docker.sock`     | acces direct la daemon-ul Docker al host-ului (Docker-in-Docker) |
-| `~/.kube` (read-only)      | configurația clusterului Minikube (`KUBECONFIG`)                 |
-| `~/.minikube` (read-only)  | certificate și context Minikube (`MINIKUBE_HOME`)                 |
-| rețea `minikube` (externă) | conectivitate directă cu clusterul                                |
-
-## Deployment Kubernetes
-
-Resursele Kubernetes (`k8s/*.yaml`) definesc:
-
-- **Namespace `fivexo`** — izolează toate resursele aplicației.
-- **Deployment `fivexo`** — 1 replică, imaginea `5xo:latest` (`imagePullPolicy: Never`, deoarece imaginea e construită local în Minikube), cu:
-  - `readinessProbe` / `livenessProbe` pe `GET /:5000`
-  - resurse: **requests** 100m CPU / 128Mi memorie, **limits** 500m CPU / 512Mi memorie
-- **Service `fivexo-service`** (tip `NodePort`) — expune portul intern `5000` pe `nodePort: 30080`, accesibil din afara clusterului.
-
-## Fluxul complet end-to-end
-
-```
-Dezvoltator ──push──▶ Jenkins ──checkout──▶ Build imagine Docker
-     ▲                                              │
-     │                                              ▼
-   Cod nou                                  Load imagine în Minikube
-     │                                              │
-     │                                              ▼
-     │                              kubectl apply (namespace + deployment + service)
-     │                                              │
-     │                                              ▼
-     └──────────────────────────  Rollout restart + health checks → Aplicație live
-                                        (nodePort 30080)
-```
-
-La finalul pipeline-ului, aplicația 5XO rulează în clusterul Kubernetes local (Minikube), redeployată automat la fiecare commit, fără intervenție manuală.
-
----
+- **Backend:** Python 3.13, Flask
+- **Frontend:** HTML5, CSS3, JavaScript (vanilla, fetch API)
+- **Containerizare:** Docker
+- **Orchestrare:** Kubernetes (Minikube)
+- **CI/CD:** Jenkins (pipeline declarativ)
