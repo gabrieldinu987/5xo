@@ -3,7 +3,9 @@ FROM python:3.13-slim
 LABEL maintainer="Gabriel Dinu"
 LABEL application="5XO"
 
+# compilare python in byte code la prima rulare a aplicatiei, pentru a imbunatati performanta
 ENV PYTHONDONTWRITEBYTECODE=1
+# setare valoarea la 1 asigura output  python strout and strerr trimise in terminal
 ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app

@@ -118,7 +118,7 @@ Aplicația va fi disponibilă la `http://localhost:5000`.
 Presupune un cluster Minikube pornit local.
 
 ```bash
-# 1. Construiește imaginea direct în demonul Docker al Minikube
+# 1. Construiește imaginea direct în Minikube
 eval $(minikube docker-env)
 docker build -t 5xo:latest .
 eval $(minikube docker-env -u)
