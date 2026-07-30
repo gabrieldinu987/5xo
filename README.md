@@ -1,6 +1,6 @@
 # 5XO — Five in a Row
 
-Aplicație web care implementează jocul „X și O" (Gomoku / Five in a Row) pe o tablă de **50×50** celule. Câștigă primul jucător care aliniază **5 simboluri identice**, pe orizontală, verticală sau diagonală.
+Aplicație web care implementează jocul „X și O" (Five in a Row) pe o tablă de **50×50** celule. Câștigă primul jucător care aliniază **5 simboluri identice**, pe orizontală, verticală sau diagonală.
 
 Proiectul include backend-ul jocului (Python/Flask), interfața web (HTML/CSS/JS), containerizarea (Docker), desfășurarea în Kubernetes (Minikube) și un pipeline CI/CD complet (Jenkins).
 
